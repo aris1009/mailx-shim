@@ -83,7 +83,7 @@ func (c *MailxClient) Authenticate(ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		io.Copy(io.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return fmt.Errorf("authenticate returned status %d", resp.StatusCode)
 	}
 
@@ -160,11 +160,11 @@ func (c *MailxClient) doCreateAlias(ctx context.Context, description string) (st
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		io.Copy(io.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return "", errUnauthorized{}
 	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		io.Copy(io.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return "", fmt.Errorf("create alias returned status %d", resp.StatusCode)
 	}
 

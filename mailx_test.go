@@ -22,26 +22,26 @@ func newTestMailxServer(authStatus, aliasStatus int, aliasName string, authCalls
 		w.Header().Set("Content-Type", "application/json")
 		if authStatus != http.StatusOK {
 			w.WriteHeader(authStatus)
-			json.NewEncoder(w).Encode(map[string]string{"error": "auth failed"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "auth failed"})
 			return
 		}
-		json.NewEncoder(w).Encode(authResponse{Token: "test-jwt-token"})
+		_ = json.NewEncoder(w).Encode(authResponse{Token: "test-jwt-token"})
 	})
 
 	mux.HandleFunc("POST /api/alias", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if aliasStatus == http.StatusUnauthorized {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
 			return
 		}
 		if aliasStatus != http.StatusOK && aliasStatus != http.StatusCreated {
 			w.WriteHeader(aliasStatus)
-			json.NewEncoder(w).Encode(map[string]string{"error": "server error"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "server error"})
 			return
 		}
 		w.WriteHeader(aliasStatus)
-		json.NewEncoder(w).Encode(createAliasResponse{
+		_ = json.NewEncoder(w).Encode(createAliasResponse{
 			Alias: struct {
 				Name string `json:"name"`
 			}{Name: aliasName},
@@ -94,7 +94,7 @@ func TestAuthenticate_NonOK(t *testing.T) {
 func TestAuthenticate_EmptyToken(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/authenticate", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(authResponse{Token: ""})
+		_ = json.NewEncoder(w).Encode(authResponse{Token: ""})
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
@@ -131,17 +131,17 @@ func TestCreateAlias_RetryOn401(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/authenticate", func(w http.ResponseWriter, r *http.Request) {
 		authCalls.Add(1)
-		json.NewEncoder(w).Encode(authResponse{Token: "refreshed-token"})
+		_ = json.NewEncoder(w).Encode(authResponse{Token: "refreshed-token"})
 	})
 	mux.HandleFunc("POST /api/alias", func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		if callCount == 1 {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "expired"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "expired"})
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(createAliasResponse{
+		_ = json.NewEncoder(w).Encode(createAliasResponse{
 			Alias: struct {
 				Name string `json:"name"`
 			}{Name: "retried@example.com"},
@@ -169,11 +169,11 @@ func TestCreateAlias_RetryOn401_ReauthFails(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/authenticate", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "denied"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "denied"})
 	})
 	mux.HandleFunc("POST /api/alias", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "expired"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "expired"})
 	})
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
