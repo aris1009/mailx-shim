@@ -18,7 +18,12 @@ func registerHandlers(mux *http.ServeMux, client *MailxClient) {
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 func handleCreateAlias(client *MailxClient) http.HandlerFunc {
@@ -27,14 +32,12 @@ func handleCreateAlias(client *MailxClient) http.HandlerFunc {
 
 		token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || token == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
 
 		if subtle.ConstantTimeCompare([]byte(token), []byte(client.cfg.BridgeKey)) != 1 {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
 
@@ -49,14 +52,12 @@ func handleCreateAlias(client *MailxClient) http.HandlerFunc {
 			Description string `json:"description"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{"error": "invalid request body"})
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
 			return
 		}
 
 		if body.Domain == "" {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			json.NewEncoder(w).Encode(map[string]string{"error": "domain is required"})
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "domain is required"})
 			return
 		}
 
@@ -67,15 +68,13 @@ func handleCreateAlias(client *MailxClient) http.HandlerFunc {
 		alias, err := client.CreateAlias(r.Context(), description)
 		if err != nil {
 			slog.Error("failed to create alias", "description", description, "error", err)
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(map[string]string{"error": "failed to create alias"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to create alias"})
 			return
 		}
 
 		slog.Info("alias created", "description", description, "alias", alias)
 
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]any{
+		writeJSON(w, http.StatusCreated, map[string]any{
 			"data": map[string]string{
 				"email": alias,
 			},

@@ -41,7 +41,9 @@ func TestHealth(t *testing.T) {
 	}
 
 	var body map[string]string
-	json.NewDecoder(rec.Body).Decode(&body)
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if body["status"] != "ok" {
 		t.Errorf("expected status 'ok', got %q", body["status"])
 	}
@@ -65,7 +67,9 @@ func TestCreateAlias_ValidRequest(t *testing.T) {
 			Email string `json:"email"`
 		} `json:"data"`
 	}
-	json.NewDecoder(rec.Body).Decode(&resp)
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
 	if resp.Data.Email != "new.alias@example.com" {
 		t.Errorf("expected email 'new.alias@example.com', got %q", resp.Data.Email)
 	}
