@@ -7,4 +7,5 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /mailx-shim .
 FROM scratch
 COPY --from=builder /mailx-shim /mailx-shim
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD ["/mailx-shim", "--healthcheck"]
 ENTRYPOINT ["/mailx-shim"]
