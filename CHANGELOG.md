@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/aris1009/mailx-shim/compare/v1.1.0...v1.1.1) (2026-04-22)
+
+
+### Bug Fixes
+
+* **ci:** cosign keyless sign + SLSA provenance + SBOM on release ([#3](https://github.com/aris1009/mailx-shim/issues/3)) ([55f8223](https://github.com/aris1009/mailx-shim/commit/55f82230e98b2e984aacf9484f2d46e24d43aa8f))
+
 ## [1.1.0](https://github.com/aris1009/mailx-shim/compare/v1.0.0...v1.1.0) (2026-04-02)
 
 
