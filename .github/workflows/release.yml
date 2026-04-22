@@ -25,6 +25,14 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,23 +46,43 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
             type=raw,value=latest
 
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign keyless sign
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
